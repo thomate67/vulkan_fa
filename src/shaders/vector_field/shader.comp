@@ -1,0 +1,112 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+layout (local_size_x = 128) in;
+
+float closest_allowed_dist = 50.0;
+float rule1_weight = 0.18;
+float rule2_weight = 0.05;
+float rule3_weight = 0.17;
+float rule4_weight = 0.02;
+//vec3 goal = vec3(0.0);
+float timestep = 0.4;
+
+struct flock_member
+{
+    vec3 position;
+    vec3 velocity;
+    vec4 color;
+};
+
+struct Uniform_grid_params
+{
+    vec4 grid_min;
+    ivec4 cell_count;
+    vec4 cell_size;
+    vec4 grid_pos;
+    int total_cell_count;
+    int cell_capacity;
+    int grid_capacity;
+};
+
+struct VectorField
+{
+	vec4 pos;
+	vec4 vector;
+};
+
+layout (std430, binding = 0) readonly buffer members_in
+{
+    flock_member member[];
+} input_data;
+
+layout (std430, binding = 1) buffer members_out
+{
+    flock_member member[];
+} output_data;
+
+shared flock_member shared_member[gl_WorkGroupSize.x];
+
+layout (std430, binding = 2) buffer grid_parameters
+{
+    Uniform_grid_params grid_params;
+};
+
+layout (binding = 3) uniform UBO 
+{
+	vec3 goal;
+} ubo;
+
+layout (std430, binding = 4) buffer grid_buffer
+{
+    int grid[];
+};
+
+layout (std430, binding = 5) buffer cell_counter_buffer
+{
+    int cell_counter[];
+};
+
+layout (std430, binding = 6) buffer vector_field_buffer
+{
+    VectorField vector_field[];
+};
+
+void main(void)
+{
+    //uint i, j;
+    int global_id = int(gl_GlobalInvocationID.x);
+    int local_id  = int(gl_LocalInvocationID.x);
+
+    if(global_id >= input_data.member.length())
+    {
+        return;
+    }
+
+    flock_member me = input_data.member[global_id];
+
+
+    vec4 pos = vec4(me.position, 0.0f);
+    int i = int((pos.x - grid_params.grid_min.x) / grid_params.cell_size.x);
+    int j = int((pos.y - grid_params.grid_min.y) / grid_params.cell_size.y);
+    int k = int((pos.z - grid_params.grid_min.z) / grid_params.cell_size.z);
+    int cell_index = i * grid_params.cell_count.y * grid_params.cell_count.z
+                     + j * grid_params.cell_count.z + k;
+   /* if (cell_index < grid_params.total_cell_count) 
+    {
+        int particles_in_cell = atomicAdd(cell_counter[cell_index], 1);
+        int grid_index = cell_index * grid_params.cell_capacity + particles_in_cell;
+        if (grid_index < grid_params.grid_capacity) 
+        {
+            grid[grid_index] = int(global_id);
+        }
+        me.color = vec4(i/float(grid_params.cell_count.x), (j)/float(grid_params.cell_count.y), k/float(grid_params.cell_count.z), 0.0f);
+    }*/
+
+    me.color = vec4(i/float(grid_params.cell_count.x), (j)/float(grid_params.cell_count.y), k/float(grid_params.cell_count.z), 0.0f);
+    //me.velocity = (vector_field[cell_index].vector.xyz * 0.1);
+
+   // me.position = me.position + me.velocity * 0.001;
+
+    output_data.member[global_id] = me;
+}

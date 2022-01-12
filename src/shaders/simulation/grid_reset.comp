@@ -1,0 +1,35 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+layout (local_size_x = 128) in;
+
+struct Uniform_grid_params
+{
+    vec4 grid_min;
+    ivec4 cell_count;
+    vec4 cell_size;
+    vec4 grid_pos;
+    int total_cell_count;
+    int cell_capacity;
+    int grid_capacity;
+};
+
+layout (std430, binding = 2) buffer grid_parameters
+{
+    Uniform_grid_params grid_params;
+};
+
+layout (std430, binding = 5) buffer cell_counter_buffer
+{
+    int cell_counter[];
+};
+
+void main() 
+{
+    uint id = gl_GlobalInvocationID.x;
+    if (id >= grid_params.total_cell_count) {
+        return;
+    }
+    cell_counter[id] = 0;
+    
+}

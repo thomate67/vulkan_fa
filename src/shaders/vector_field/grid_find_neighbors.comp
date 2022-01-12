@@ -1,0 +1,120 @@
+#version 450
+
+layout (local_size_x = 128) in;
+
+struct flock_member
+{
+    vec3 position;
+    vec3 velocity;
+    vec4 color;
+};
+
+struct Uniform_grid_params
+{
+    vec4 grid_min;
+    ivec4 cell_count;
+    vec4 cell_size;
+    vec4 grid_pos;
+    int total_cell_count;
+    int cell_capacity;
+    int grid_capacity;
+};
+
+layout (std430, binding = 0) readonly buffer members_in
+{
+    flock_member member[];
+} input_data;
+
+layout (std430, binding = 1) buffer members_out
+{
+    flock_member member[];
+} output_data;
+
+layout (std430, binding = 2) buffer grid_parameters
+{
+    Uniform_grid_params grid_params;
+};
+
+layout (std430, binding = 4) buffer grid_buffer
+{
+    int grid[];
+};
+
+layout (std430, binding = 5) buffer cell_counter_buffer
+{
+    int cell_counter[];
+};
+
+layout (std430, binding = 7) buffer neighbor_buffer
+{
+    int neighbor[];
+};
+
+layout (std430, binding = 8) buffer neighbor_counter_buffer
+{
+    int neighbor_counter[];
+};
+
+void main() 
+{
+    uint id = gl_GlobalInvocationID.x;
+
+    if (id >= input_data.member.length()) 
+    {
+        return;
+    }
+
+    flock_member p = input_data.member[id];
+    vec4 pos = vec4(p.position, 0.0f);
+
+    int neighbor_count = 0;
+    
+    int i = int((pos.x - grid_params.grid_min.x) / grid_params.cell_size.x);
+    int j = int((pos.y - grid_params.grid_min.y) / grid_params.cell_size.y);
+    int k = int((pos.z - grid_params.grid_min.z) / grid_params.cell_size.z);
+    
+    int max_x = min(i + 2, grid_params.cell_count.x);
+    int max_y = min(j + 2, grid_params.cell_count.y);
+    int max_z = min(k + 2, grid_params.cell_count.z);
+    
+    for (int x = max(0, i - 1); x < max_x; x++) 
+    {
+        int x_counter_offset = x * grid_params.cell_count.y * grid_params.cell_count.z;
+        int x_offset = x_counter_offset * grid_params.cell_capacity;
+
+        for (int y = max(0, j - 1); y < max_y; y++) 
+        {
+            int y_counter_offset = y * grid_params.cell_count.z;
+            int y_offset = y_counter_offset * grid_params.cell_capacity;
+
+            for (int z = max(0, k - 1); z < max_z; z++) 
+            {
+                int z_offset = z * grid_params.cell_capacity;
+                int n = min(grid_params.cell_capacity, cell_counter[x_counter_offset + y_counter_offset + z]);
+
+                for (int o = 0; o < n; o++) 
+                {
+                    if (neighbor_count < 15)
+                    {
+                        int other = grid[x_offset + y_offset + z_offset + o];
+
+                        if (id == other)
+                        {
+                            continue;
+                        }
+
+                        float dist = distance(pos.xyz, input_data.member[other].position.xyz);
+
+                        if (dist <= 1000000.0) 
+                        {
+                            neighbor[id * 15 + neighbor_count] = other;
+                            
+                            neighbor_count++;
+                        }
+                    } 
+                }
+            }
+        }
+    }
+    neighbor_counter[id] = int(id);
+}

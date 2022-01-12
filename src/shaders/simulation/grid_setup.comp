@@ -1,0 +1,137 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+layout (local_size_x = 128) in;
+
+struct Plasma
+{
+    vec4 pos;
+	vec4 vel;
+    vec4 color;
+	float lifetime;
+    float max_lifetime;
+	int hit_counter;
+};
+
+struct Atom
+{
+	vec4 pos;
+	vec4 vel;
+	vec4 color;
+	int type;
+    int is_excited;
+    int is_dead;
+    float lifetime;
+    float max_lifetime;
+};
+
+struct Uniform_grid_params
+{
+    vec4 grid_min;
+    ivec4 cell_count;
+    vec4 cell_size;
+    vec4 grid_pos;
+    int total_cell_count;
+    int cell_capacity;
+    int grid_capacity;
+};
+
+layout (std430, binding = 0) buffer plasma_buffer
+{
+    Plasma particles[];
+};
+
+layout (std430, binding = 1) buffer atoms_buffer
+{
+   Atom atoms[];
+};
+
+layout (std430, binding = 2) buffer grid_parameters
+{
+    Uniform_grid_params grid_params;
+};
+
+layout (std430, binding = 4) buffer grid_buffer
+{
+    int grid[];
+};
+
+layout (std430, binding = 5) buffer cell_counter_buffer
+{
+    int cell_counter[];
+};
+
+void main() 
+{
+    int id = int(gl_GlobalInvocationID.x);
+
+    /*if(id >= atoms.length())
+    {
+        return;
+    }
+
+    Atom atom = atoms[id];
+
+    vec4 pos = atom.pos;
+    int i = int((pos.x - grid_params.grid_min.x) / grid_params.cell_size.x);
+    int j = int((pos.y - grid_params.grid_min.y) / grid_params.cell_size.y);
+    int k = int((pos.z - grid_params.grid_min.z) / grid_params.cell_size.z);
+    int cell_index = i * grid_params.cell_count.y * grid_params.cell_count.z
+                     + j * grid_params.cell_count.z + k;
+    if (cell_index < grid_params.total_cell_count) 
+    {
+        int particles_in_cell = atomicAdd(cell_counter[cell_index], 1);
+        int grid_index = cell_index * grid_params.cell_capacity + particles_in_cell;
+        if (grid_index < grid_params.grid_capacity) 
+        {
+            grid[grid_index] = int(id);
+        }
+        //particle.color = vec4(i/float(grid_params.cell_count.x), (j)/float(grid_params.cell_count.y), k/float(grid_params.cell_count.z), 0.0f);
+    }*/
+
+    if(id < atoms.length())
+    {
+        Atom atom = atoms[id];
+
+        vec4 atom_pos = atom.pos;
+        int i = int((atom_pos.x - grid_params.grid_min.x) / grid_params.cell_size.x);
+        int j = int((atom_pos.y - grid_params.grid_min.y) / grid_params.cell_size.y);
+        int k = int((atom_pos.z - grid_params.grid_min.z) / grid_params.cell_size.z);
+        int cell_index = i * grid_params.cell_count.y * grid_params.cell_count.z
+                         + j * grid_params.cell_count.z + k;
+        if (cell_index < grid_params.total_cell_count) 
+        {
+            int particles_in_cell = atomicAdd(cell_counter[cell_index], 1);
+            int grid_index = cell_index * grid_params.cell_capacity + particles_in_cell;
+            if (grid_index < grid_params.grid_capacity) 
+            {
+                grid[grid_index] = int(id);
+            }
+        }
+    }
+
+    if(id < particles.length())
+    {
+        Plasma particle = particles[id];
+
+        int offset = atoms.length();
+
+        vec4 plasma_pos = particle.pos;
+        int i = int((plasma_pos.x - grid_params.grid_min.x) / grid_params.cell_size.x);
+        int j = int((plasma_pos.y - grid_params.grid_min.y) / grid_params.cell_size.y);
+        int k = int((plasma_pos.z - grid_params.grid_min.z) / grid_params.cell_size.z);
+        int cell_index = i * grid_params.cell_count.y * grid_params.cell_count.z
+                         + j * grid_params.cell_count.z + k;
+        if (cell_index < grid_params.total_cell_count) 
+        {
+            int particles_in_cell = atomicAdd(cell_counter[cell_index], 1);
+            int grid_index = cell_index * grid_params.cell_capacity + particles_in_cell;
+            if (grid_index < grid_params.grid_capacity) 
+            {
+                grid[grid_index] = int(id + offset);
+            }
+        }
+    }
+    
+    return;
+}

@@ -1,0 +1,170 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+layout (local_size_x = 128) in;
+
+float closest_allowed_dist = 50.0;
+float rule1_weight = 0.18;
+float rule2_weight = 0.05;
+float rule3_weight = 0.17;
+float rule4_weight = 0.02;
+//vec3 goal = vec3(0.0);
+float timestep = 0.4;
+
+struct Plasma
+{
+    vec4 pos;
+	vec4 vel;
+    vec4 color;
+	float lifetime;
+    float max_lifetime;
+	int hit_counter;
+};
+
+struct Atom
+{
+	vec4 pos;
+	vec4 vel;
+	vec4 color;
+	int type;
+    int is_excited;
+    int is_dead;
+    float lifetime;
+    float max_lifetime;
+};
+
+struct Uniform_grid_params
+{
+    vec4 grid_min;
+    ivec4 cell_count;
+    vec4 cell_size;
+    vec4 grid_pos;
+    int total_cell_count;
+    int cell_capacity;
+    int grid_capacity;
+};
+
+struct VectorField
+{
+	vec4 pos;
+	vec4 vector;
+};
+
+layout (binding = 3) uniform UBO 
+{
+	vec3 goal;
+} ubo;
+
+layout (binding = 9) uniform UVariables 
+{
+	float delta_time;
+    float theta;
+} variables;
+
+layout (std430, binding = 0) buffer plasma_buffer
+{
+    Plasma particles[];
+};
+
+layout (std430, binding = 1) buffer atoms_buffer
+{
+   Atom atoms[];
+};
+
+layout (std430, binding = 2) buffer grid_parameters
+{
+    Uniform_grid_params grid_params;
+};
+
+layout (std430, binding = 4) buffer grid_buffer
+{
+    int grid[];
+};
+
+layout (std430, binding = 5) buffer cell_counter_buffer
+{
+    int cell_counter[];
+};
+
+layout (std430, binding = 6) buffer vector_field_buffer
+{
+    VectorField vector_field[];
+};
+
+void main(void)
+{
+    //uint i, j;
+    int global_id = int(gl_GlobalInvocationID.x);
+    int local_id  = int(gl_LocalInvocationID.x);
+
+    if(global_id < atoms.length())
+    {
+        Atom atom = atoms[global_id];
+
+        vec4 pos = atom.pos;
+        int i = int((pos.x - grid_params.grid_min.x) / grid_params.cell_size.x);
+        int j = int((pos.y - grid_params.grid_min.y) / grid_params.cell_size.y);
+        int k = int((pos.z - grid_params.grid_min.z) / grid_params.cell_size.z);
+        int cell_index = i * grid_params.cell_count.y * grid_params.cell_count.z
+                        + j * grid_params.cell_count.z + k;
+
+        atoms[global_id] = atom;
+    }
+
+    if(global_id < particles.length())
+    {
+        Plasma particle = particles[global_id];
+        particle.pos += vec4(0.0005f * cos(variables.theta), -0.001f, 0.0005f * sin(variables.theta), 0.0f);   //particle moving in a circle on the xz axis
+        particles[global_id] = particle;
+    }
+
+    return;
+
+    
+    //Plasma particl = particles[global_id];
+
+   /* if(particle.life <= 0)
+    {
+        particle.pos = vec4(0.0f);
+
+        particle.life = 10.0f;
+    }
+    else
+    {
+        particle.life -= delta_time;
+    }
+
+    particles[global_id] = particle;*/
+
+    
+   /* if (cell_index < grid_params.total_cell_count) 
+    {
+        int particles_in_cell = atomicAdd(cell_counter[cell_index], 1);
+        int grid_index = cell_index * grid_params.cell_capacity + particles_in_cell;
+        if (grid_index < grid_params.grid_capacity) 
+        {
+            grid[grid_index] = int(global_id);
+        }
+        me.color = vec4(i/float(grid_params.cell_count.x), (j)/float(grid_params.cell_count.y), k/float(grid_params.cell_count.z), 0.0f);
+    }*/
+
+    //atom.color = vec4(i/float(grid_params.cell_count.x), (j)/float(grid_params.cell_count.y), k/float(grid_params.cell_count.z), 0.0f);
+    //me.velocity = (vector_field[cell_index].vector.xyz * 0.1);
+
+   // me.position = me.position + me.velocity * 0.001;
+
+   //particle.pos += vec4(0.0f, 0.001f, 0.0f, 0.0f);
+
+   /*if(particle.pos.y >= 10.0f)
+   {
+       particle.pos = vec4(0.0f, -5.0f, 0.0f, 0.0f);
+   }*/
+
+    //vec4 center = particle.pos;
+    
+
+    //particle.color = vec4(0.824f, 0.532f, 0.134f, 0.0f);
+
+    //particles[0] = particle;
+    
+}

@@ -1,0 +1,60 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+layout (local_size_x = 128) in;
+
+
+struct Boid
+{
+    vec3 position;
+    vec3 velocity;
+};
+
+layout (std430, binding = 0) readonly buffer BoidIn
+{
+    Boid flockIn[];
+};
+
+layout (std430, binding = 1) buffer BoidOut
+{
+    Boid flockOut[];
+};
+
+shared Boid shared_member[gl_WorkGroupSize.x];
+
+void main(void)
+{
+    uint i, j;
+    int global_id = int(gl_GlobalInvocationID.x);
+    int local_id  = int(gl_LocalInvocationID.x);
+
+    Boid test = flockIn[global_id];
+    Boid new_me;
+
+    vec3 accelleration = vec3(0.0);
+
+    for (i = 0; i < gl_NumWorkGroups.x; i++)
+    {
+        Boid them =
+            flockIn[i * gl_WorkGroupSize.x +
+                              local_id];
+        shared_member[local_id] = them;
+        memoryBarrierShared();
+        barrier();
+        for (j = 0; j < gl_WorkGroupSize.x; j++)
+        {
+            them = shared_member[j];
+            if (i * gl_WorkGroupSize.x + j != global_id)
+            {
+                accelleration += vec3(0.001f, 0.001f, 0.001f);
+            }
+        }
+        barrier();
+    }
+	
+    new_me.position = test.position + vec3(0.001f, 0.001f, 0.001f);
+    new_me.velocity = test.velocity + vec3(0.001f, 0.001f, 0.001f);
+
+    flockOut[global_id] = new_me;
+
+}

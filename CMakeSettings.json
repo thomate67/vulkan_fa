@@ -1,0 +1,71 @@
+{
+  "environments": [
+    {
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "generatorx64": "Ninja"
+    }
+  ],
+  "configurations": [
+    {
+      "name": "x64-Debug",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\build\\${name}",
+	  "generator": "${env.generatorx64}",
+      "cmakeCommandArgs": "${env.cmakeCommandArgs}",
+      "buildCommandArgs": "${env.buildCommandArgs}",
+      "ctestCommandArgs": "",
+	  "variables": [
+        {
+          "name": "CMAKE_TOOLCHAIN_FILE",
+          "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake"
+        },
+        {
+          "name": "VCPKG_TARGET_TRIPLET",
+          "value": "x64-windows"
+        }
+      ]
+    },
+    {
+      "name": "x64-RelWithDebInfo",
+      "configurationType": "RelWithDebInfo",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\build\\${name}",
+	  "generator": "${env.generatorx64}",
+      "cmakeCommandArgs": "${env.cmakeCommandArgs}",
+      "buildCommandArgs": "${env.buildCommandArgs}",
+      "ctestCommandArgs": "",
+	  "variables": [
+        {
+          "name": "CMAKE_TOOLCHAIN_FILE",
+          "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake"
+        },
+        {
+          "name": "VCPKG_TARGET_TRIPLET",
+          "value": "x64-windows"
+        }
+      ]
+    },
+    {
+      "name": "x64-Release",
+      "configurationType": "Release",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\build\\${name}",
+	  "generator": "${env.generatorx64}",
+      "cmakeCommandArgs": "${env.cmakeCommandArgs}",
+      "buildCommandArgs": "${env.buildCommandArgs}",
+      "ctestCommandArgs": "",
+	  "variables": [
+        {
+          "name": "CMAKE_TOOLCHAIN_FILE",
+          "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake"
+        },
+        {
+          "name": "VCPKG_TARGET_TRIPLET",
+          "value": "x64-windows"
+        }
+      ]
+    }
+  ]
+}
